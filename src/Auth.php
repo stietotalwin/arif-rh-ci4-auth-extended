@@ -1,4 +1,4 @@
-<?php namespace Arifrh\Auth;
+<?php namespace ArifrhFeatStieTotalWin\Auth;
 
 /**
  * PHPAuth for CodeIgniter 4

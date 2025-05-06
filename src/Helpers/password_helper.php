@@ -1,4 +1,4 @@
-<?php namespace Arifrh\Auth;
+<?php namespace ArifrhFeatStieTotalWin\Auth;
 
 function is_strong_password($password)
 {
