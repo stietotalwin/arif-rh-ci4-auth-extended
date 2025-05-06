@@ -25,12 +25,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Arifrh\\Auth\\": "src"
+            "ArifrhFeatStieTotalWin\\Auth\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Arifrh\\AuthTests\\": "tests"
+            "ArifrhFeatStieTotalWin\\AuthTests\\": "tests"
         }
     },
     "scripts": {
