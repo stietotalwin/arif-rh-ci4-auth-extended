@@ -4,7 +4,7 @@ This package is adopted from [PHPAuth](https://github.com/PHPAuth/PHPAuth), but 
 
 ## Installation
 
-1. `composer require arif-rh/ci4-auth`
+1. `composer require stietotalwin/arif-rh-ci4-auth-extended`
 2. make sure you have set you database config properly
 3. `php spark migrate -n Arifrh\Auth`
 4. `php spark db:seed \\Arifrh\\Auth\\Database\\Seeds\\AuthSeeder`
