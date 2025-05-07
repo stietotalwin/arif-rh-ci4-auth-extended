@@ -1525,7 +1525,7 @@ class Auth
 					$return['message'] = lang('Auth.' . $type . '_email_not_sent'); // Or a more specific message from the callback
 				}
 			} catch (\Exception $e) {
-				log_message('failed to send email using callback:', $e->getMessage());
+				log_message('error','failed to send email using callback:' . $e->getMessage());
 				// @codeCoverageIgnoreStart
 				$return['message'] = lang('Auth.' . $type . '_email_not_sent'); // Or a more specific message from the callback
 				// @codeCoverageIgnoreEnd
@@ -1549,7 +1549,7 @@ class Auth
 
 			if (!$mail->send())
 			{
-				log_message('failed to send email using php mailer:', $mail->printDebugger());
+				log_message('error','failed to send email using php mailer:' . $mail->printDebugger());
 				// @codeCoverageIgnoreStart
 				$return['message'] = lang('Auth.' . $type . '_email_not_sent');
 				return $return;
