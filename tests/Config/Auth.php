@@ -1,12 +1,12 @@
 <?php
 
-namespace Arifrh\AuthTests\Config;
+namespace StieTotalWin\AuthTests\Config;
 
 /**
  * PHPAuth Config class
  */
 
-class Auth extends \Arifrh\Auth\Config\Auth
+class Auth extends \StieTotalWin\Auth\Config\Auth
 {
 	/**
 	 * Cost used in Bcript

@@ -1,6 +1,6 @@
 <?php
 
-namespace Arifrh\Auth\Controllers;
+namespace StieTotalWin\Auth\Controllers;
 
 /**
  * This Class provide method for Forbidden page
@@ -12,7 +12,7 @@ class Auth extends \CodeIgniter\Controller
 	 */
 	public function deniedRole()
 	{
-		echo view('\Arifrh\Auth\Views\Forbidden', ['message' => lang('Auth.invalid_role')]);
+		echo view('\StieTotalWin\Auth\Views\Forbidden', ['message' => lang('Auth.invalid_role')]);
 	}
 
 	/**
@@ -20,6 +20,6 @@ class Auth extends \CodeIgniter\Controller
 	 */
 	public function deniedGroup()
 	{
-		echo view('\Arifrh\Auth\Views\Forbidden', ['message' => lang('Auth.invalid_group')]);
+		echo view('\StieTotalWin\Auth\Views\Forbidden', ['message' => lang('Auth.invalid_group')]);
 	}
 }

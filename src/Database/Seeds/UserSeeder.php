@@ -1,6 +1,6 @@
 <?php
 
-namespace Arifrh\Auth\Database\Seeds;
+namespace StieTotalWin\Auth\Database\Seeds;
 
 class UserSeeder extends \CodeIgniter\Database\Seeder
 {

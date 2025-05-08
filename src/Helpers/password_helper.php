@@ -1,8 +1,8 @@
-<?php namespace ArifrhFeatStieTotalWin\Auth;
+<?php namespace StieTotalWin\Auth;
 
 function is_strong_password($password)
 {
-	$auth = new \Arifrh\Auth\Auth();
+	$auth = new \StieTotalWin\Auth\Auth();
 
 	if (strlen($password) < (int) $auth->config->passwordMinLength )
 	{

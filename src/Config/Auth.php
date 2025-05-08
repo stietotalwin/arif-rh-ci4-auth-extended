@@ -1,6 +1,6 @@
 <?php
 
-namespace Arifrh\Auth\Config;
+namespace StieTotalWin\Auth\Config;
 
 /**
  * PHPAuth Config class

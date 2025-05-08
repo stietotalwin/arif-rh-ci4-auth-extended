@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-use Arifrh\DynaModel\DB;
+namespace StieTotalWin\AuthTests;
+
+use StieTotalWin\DynaModel\DB;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -87,7 +89,7 @@ final class AuthTest extends TestCase
 	 */
 	public function setUp(): void
 	{
-		$this->auth = new Arifrh\Auth\Auth();
+		$this->auth = new \StieTotalWin\Auth\Auth();
 		$this->auth->testMode();
 	}
 
@@ -217,7 +219,7 @@ final class AuthTest extends TestCase
 
 		$this->assertFalse($return['error']);
 
-		$newAuth = new \Arifrh\Auth\Auth(new \Arifrh\AuthTests\Config\Auth); 
+		$newAuth = new \StieTotalWin\Auth\Auth(new \StieTotalWin\AuthTests\Config\Auth); 
 		$newAuth->testMode();
 
 		// login with correct password for active account, with rehash password
@@ -586,10 +588,10 @@ final class AuthTest extends TestCase
 	{
 		$weakPassword = 'Admin123';
 
-		$this->assertFalse(\Arifrh\Auth\is_strong_password($weakPassword));
+		$this->assertFalse(\StieTotalWin\Auth\is_strong_password($weakPassword));
 
-		$strongPassword = \Arifrh\Auth\generate_strong_password();
+		$strongPassword = \StieTotalWin\Auth\generate_strong_password();
 
-		$this->assertTrue(\Arifrh\Auth\is_strong_password($strongPassword));
+		$this->assertTrue(\StieTotalWin\Auth\is_strong_password($strongPassword));
 	}
 }

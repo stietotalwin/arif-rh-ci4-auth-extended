@@ -13,11 +13,15 @@
         {
             "name": "Arif Rahman Hakim feat. Stie Totalwin",
             "email": "arifrahmanhakim.net@gmail.com"
+        },
+        {
+            "name": "Stie Totalwin",
+            "email": "stie.totalwin@gmail.com"
         }
     ],
     "require": {
-        "arif-rh/ci4-dynamic-model": "^0.3",
-        "bjeavons/zxcvbn-php": "^1.0"
+        "bjeavons/zxcvbn-php": "^1.0",
+        "stietotalwin/arif-rh-ci4-dynamic-model-extended": "^1.0"
     },
     "require-dev": {
         "codeigniter4/framework": "^4.1",
@@ -25,12 +29,12 @@
     },
     "autoload": {
         "psr-4": {
-            "ArifrhFeatStieTotalWin\\Auth\\": "src"
+            "StieTotalWin\\Auth\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "ArifrhFeatStieTotalWin\\AuthTests\\": "tests"
+            "StieTotalWin\\AuthTests\\": "tests"
         }
     },
     "scripts": {

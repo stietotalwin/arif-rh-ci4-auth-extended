@@ -53,17 +53,22 @@
 
 		<!-- Directory containing the front controller (index.php) -->
 		<const name="PUBLICPATH" value="./public/"/>
+
+		<!-- Directory containing the Paths of test file -->
+		<const name="TESTPATH" value="./tests/"/>
+
 		<const name="CI_DEBUG" value="1"/>
 
 		<!-- Database configuration -->
-		<env name="database.tests.hostname" value="localhost"/>
+		<env name="database.tests.hostname" value="127.0.0.1"/>
 		<env name="database.tests.database" value="codeflare"/>
 		<env name="database.tests.username" value="root"/>
-		<env name="database.tests.password" value=""/>
+		<env name="database.tests.password" value="root"/>
+		<env name="database.tests.port" value="2010"/>
 		<env name="database.tests.DBPrefix" value=""/>
 		<env name="database.tests.DBDriver" value="MySQLi"/>
-<!--	<env name="database.tests.DBPrefix" value="tests_"/>	 -->
-		<!-- <env name="database.tests.database" value=":memory:"/>
+		<!-- <env name="database.tests.DBPrefix" value="tests_"/>	
+		<env name="database.tests.database" value=":memory:"/>
 		<env name="database.tests.DBDriver" value="SQLite3"/> -->
 
 		<env name="email.protocol" value="smtp"/>

@@ -1,6 +1,6 @@
 <?php
 
-namespace Arifrh\Auth\Database\Migrations;
+namespace StieTotalWin\Auth\Database\Migrations;
 
 use \CodeIgniter\Config\BaseConfig;
 

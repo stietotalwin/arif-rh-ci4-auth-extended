@@ -1,11 +1,11 @@
-<?php namespace ArifrhFeatStieTotalWin\Auth;
+<?php namespace StieTotalWin\Auth;
 
 /**
  * PHPAuth for CodeIgniter 4
  *
  */
 
-use Arifrh\DynaModel\DB;
+use StieTotalWin\DynaModel\DB;
 use CodeIgniter\Config\BaseConfig;
 use ZxcvbnPhp\Zxcvbn;
 
