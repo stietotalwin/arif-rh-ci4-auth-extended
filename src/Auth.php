@@ -94,7 +94,7 @@ class Auth
 	 *
 	 * @param BaseConfig|null $config
 	 *
-	 * @return BaseConfig
+	 * @return void
 	 */
 	public function getConfig(BaseConfig $config = null)
 	{
@@ -112,8 +112,6 @@ class Auth
 		foreach ($configVals as $config) {
 			$this->config->{camelize($config->name)} = $config->value;
 		}
-
-		return $this->config;
 	}
 
 	/**
