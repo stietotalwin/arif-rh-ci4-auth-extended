@@ -1,4 +1,5 @@
-<?php namespace StieTotalWin\Auth;
+<?php
+namespace StieTotalWin\Auth;
 
 /**
  * PHPAuth for CodeIgniter 4
@@ -15,8 +16,8 @@ use ZxcvbnPhp\Zxcvbn;
  */
 class Auth
 {
-	const HASH_LENGTH  = 40;
-	const TOKEN_LENGTH = 20;
+	public const HASH_LENGTH  = 40;
+	public const TOKEN_LENGTH = 20;
 
 	/**
 	 * Auth Configuration
@@ -49,28 +50,28 @@ class Auth
 	/**
 	 * Current user login
 	 *
-	 * @var null
+	 * @var array|null
 	 */
 	protected $currentUser = null;
 
 	/**
 	 * User Roles
 	 *
-	 * @var mixed $roles
+	 * @var array
 	 */
 	protected $roles = [];
 
 	/**
 	 * User Groups
 	 *
-	 * @var mixed $groups
+	 * @var array
 	 */
 	protected $groups = [];
 
 	/**
 	 * Initiates database connection
 	 *
-	 * @param BaseConfig $config
+	 * @param BaseConfig|null $config
 	 *
 	 * @return void
 	 */
@@ -91,18 +92,15 @@ class Auth
 	/**
 	 * Get All Auth Configuration
 	 *
-	 * @param BaseConfig $config
+	 * @param BaseConfig|null $config
 	 *
-	 * @return mixed
+	 * @return BaseConfig
 	 */
 	public function getConfig(BaseConfig $config = null)
 	{
-		if ($config instanceof BaseConfig)
-		{
+		if ($config instanceof BaseConfig) {
 			$this->config = $config;
-		}
-		else
-		{
+		} else {
 			$this->config = \CodeIgniter\Config\Factories::config('Auth');
 		}
 
@@ -111,8 +109,7 @@ class Auth
 		$tblConfig  = DB::table($this->config->configTable);
 		$configVals = $tblConfig->asObject()->findAll();
 
-		foreach ($configVals as $config)
-		{
+		foreach ($configVals as $config) {
 			$this->config->{camelize($config->name)} = $config->value;
 		}
 
@@ -122,39 +119,33 @@ class Auth
 	/**
 	 * Logs a user in
 	 *
-	 * @param string  $email
-	 * @param string  $password
-	 * @param boolean $remember
+	 * @param string $email
+	 * @param string $password
+	 * @param bool   $remember
 	 *
-	 * @return array[
-	 *  error: boolean,
-	 *  message: string
-	 * ]
+	 * @return array{error: bool, message: string, hash?: string, cookieName?: string}
 	 */
 	public function login(string $email, string $password, bool $remember = false)
 	{
 		$return['error'] = true;
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			$return['message'] = lang("Auth.user_blocked");
 			return $return;
 		}
 
 		$validateEmail = $this->validateEmail($email);
 
-		if ($validateEmail['error'])
-		{
+		if ($validateEmail['error']) {
 			$return['message'] = $validateEmail['message'];
 
-			$this->addAttempt('Login::' . $return['message']);			
+			$this->addAttempt('Login::' . $return['message']);
 
 			return $return;
 		}
 
 		$validatePassword = $this->validatePassword($password);
-		if ($validatePassword['error'])
-		{
+		if ($validatePassword['error']) {
 			$return['message'] = $validatePassword['message'];
 
 			$this->addAttempt('Login::' . $return['message']);
@@ -164,8 +155,7 @@ class Auth
 
 		$uid = $this->getUID(strtolower($email));
 
-		if (!$uid)
-		{
+		if (!$uid) {
 			$return['message'] = lang("Auth.account_not_found");
 
 			$this->addAttempt('Login::' . $return['message']);
@@ -175,8 +165,7 @@ class Auth
 
 		$user = $this->getUser($uid, true);
 
-		if (!$this->passwordVerifyWithRehash($password, $user['password'], $uid))
-		{
+		if (!$this->passwordVerifyWithRehash($password, $user['password'], $uid)) {
 			$return['message'] = lang("Auth.email_password_incorrect");
 
 			$this->addAttempt('Login::' . $return['message']);
@@ -184,8 +173,7 @@ class Auth
 			return $return;
 		}
 
-		if ((int) $user['active'] !== 1)
-		{
+		if ((int) $user['active'] !== 1) {
 			$return['message'] = lang("Auth.account_inactive");
 
 			$this->addAttempt('Login::' . $return['message']);
@@ -195,8 +183,7 @@ class Auth
 
 		$sessiondata = $this->addSession($user['uid'], $remember);
 
-		if ($sessiondata === false)
-		{
+		if ($sessiondata === false) {
 			$return['message'] = lang('Auth.system_error');
 
 			return $return;
@@ -205,7 +192,7 @@ class Auth
 		$return['error']   = false;
 		$return['message'] = lang("Auth.logged_in");
 
-		$return['hash']   = $sessiondata['hash'];
+		$return['hash'] = $sessiondata['hash'];
 
 		$return['cookieName'] = $this->config->cookieName;
 
@@ -215,25 +202,20 @@ class Auth
 	/**
 	 * Logs a user in by LoginID
 	 *
-	 * @param string  $loginID
-	 * @param string  $password
-	 * @param boolean $remember
+	 * @param string $loginID
+	 * @param string $password
+	 * @param bool   $remember
 	 *
-	 * @return array[
-	 *  error: boolean,
-	 *  message: string
-	 * ]
+	 * @return array{error: bool, message: string, hash?: string, cookieName?: string}
 	 */
 	public function loginByLoginID(string $loginID, string $password, bool $remember = false)
 	{
 		$return['error'] = true;
 
-		if ($this->config->enableLoginID)
-		{
+		if ($this->config->enableLoginID) {
 			$user = $this->getUserByLoginID($loginID);
 
-			if (isset($user['email']))
-			{
+			if (isset($user['email'])) {
 				$email = $user['email'];
 
 				return $this->login($email, $password, $remember);
@@ -254,36 +236,28 @@ class Auth
 	 * @param string $password
 	 * @param string $repeatPassword
 	 * @param array  $params
-	 * @param bool   $useEmailActivation = null
+	 * @param bool   $useEmailActivation
 	 *
-	 * @return mixed[] $return
+	 * @return array{error: bool, message: string}
 	 */
 	public function register(string $email, string $password, string $repeatPassword, array $params = [], bool $useEmailActivation = true)
 	{
 		$return['error'] = true;
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			$return['message'] = lang('Auth.user_blocked');
-		}
-		elseif ($password !== $repeatPassword) 
-		{
+		} elseif ($password !== $repeatPassword) {
 			$return['message'] = lang('Auth.password_nomatch');
-		}
-		else
-		{
+		} else {
 			$addUser = $this->addUser($email, $password, $params, $useEmailActivation);
 
-			if ($addUser['error'])
-			{
+			if ($addUser['error']) {
 				$return['message'] = $addUser['message'];
-			}
-			else
-			{
+			} else {
 				$return['error']   = false;
 				$return['message'] =
 					($useEmailActivation ? lang('Auth.register_success')
-					: lang('Auth.register_success_emailmessage_suppressed'));
+						: lang('Auth.register_success_emailmessage_suppressed'));
 			}
 		}
 
@@ -294,42 +268,33 @@ class Auth
 	 * Activates a user's account
 	 *
 	 * @param string $activationToken
-	 * @return mixed[] $return
+	 * @return array{error: bool, message: string}
 	 */
 	public function activateUserAccount(string $activationToken)
 	{
 		$return['error'] = true;
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			$return['message'] = lang("Auth.user_blocked");
-		}
-		elseif (strlen($activationToken) !== self::TOKEN_LENGTH)
-		{
+		} elseif (strlen($activationToken) !== self::TOKEN_LENGTH) {
 			$return['message'] = lang("Auth.activationkey_invalid");
 
 			$this->addAttempt('activateUserAccount::' . $return['message']);
-		}
-		else
-		{
+		} else {
 			$request = $this->getRequest($activationToken, "activation");
 
-			if ($request['error'])
-			{
+			if ($request['error']) {
 				$return['message'] = $request['message'];
-			}
-			else
-			{
+			} else {
 				$userTable = DB::table($this->config->userTable);
 
 				$updated = $userTable->update($request['uid'], ['active' => 1]);
 
-				if ($updated)
-				{
+				if ($updated) {
 					$this->deleteRequest($request['id']);
 				}
 
-				$return['error'] = false;
+				$return['error']   = false;
 				$return['message'] = lang("Auth.account_activated");
 			}
 		}
@@ -341,40 +306,32 @@ class Auth
 	 * Creates a reset key for an email address and sends email
 	 * @param string $email
 	 *
-	 * @return array $return
+	 * @return array{error: bool, message: string}
 	 */
 	public function requestReset(string $email)
 	{
 		$state['error'] = true;
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			// @codeCoverageIgnoreStart
 			$state['message'] = lang("Auth.user_blocked");
 			// @codeCoverageIgnoreEnd
-		}
-		elseif (! $this->isEmailTaken($email))
-		{
+		} elseif (!$this->isEmailTaken($email)) {
 			$state['message'] = lang("Auth.email_incorrect");
 
 			$this->addAttempt('requestReset::' . $state['message']);
-		}
-		else
-		{
+		} else {
 			$uid = $this->getUID($email);
 
 			$addRequest = $this->addRequest($uid, $email, 'reset');
 
-			if ($addRequest['error'])
-			{
+			if ($addRequest['error']) {
 				// @codeCoverageIgnoreStart
 				$state['message'] = $addRequest['message'];
 
 				$this->addAttempt('requestReset::' . $state['message']);
 				// @codeCoverageIgnoreEnd
-			}
-			else
-			{
+			} else {
 				$state['error']   = false;
 				$state['message'] = lang('Auth.reset_requested');
 			}
@@ -388,12 +345,11 @@ class Auth
 	 *
 	 * @param string $hash
 	 *
-	 * @return boolean
+	 * @return void
 	 */
 	public function logout(string $hash)
 	{
-		if (strlen($hash) === self::HASH_LENGTH)
-		{
+		if (strlen($hash) === self::HASH_LENGTH) {
 			$this->isAuthenticated = false;
 			$this->currentUser     = null;
 
@@ -406,7 +362,7 @@ class Auth
 	 *
 	 * @param int $uid
 	 *
-	 * @return boolean
+	 * @return bool
 	 */
 	public function logoutAll(int $uid)
 	{
@@ -431,10 +387,10 @@ class Auth
 	/**
 	 * Creates a session for a specified user id
 	 *
-	 * @param int     $uid
-	 * @param boolean $remember
+	 * @param int  $uid
+	 * @param bool $remember
 	 *
-	 * @return mixed[] $data
+	 * @return array|false
 	 */
 	protected function addSession(int $uid, bool $remember = false)
 	{
@@ -442,23 +398,18 @@ class Auth
 
 		$user = $this->getUser($uid);
 
-		if ($user) 
-		{
+		if ($user) {
 			$data['hash'] = sha1($this->config->siteKey . microtime());
 
 			$agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
-			if (! $this->config->allowConcurrentSessions)
-			{
+			if (!$this->config->allowConcurrentSessions) {
 				$this->deleteExistingSessions($uid);
 			}
 
-			if ($remember)
-			{
+			if ($remember) {
 				$data['expire'] = strtotime($this->config->cookieRemember);
-			}
-			else
-			{
+			} else {
 				$data['expire'] = strtotime($this->config->cookieForget);
 			}
 
@@ -486,11 +437,11 @@ class Auth
 	/**
 	 * Set Test mode
 	 *
-	 * @param boolean $testMode
+	 * @param bool $testMode
 	 *
 	 * @return $this
 	 */
-	public function testMode($testMode = true)
+	public function testMode(bool $testMode = true)
 	{
 		$this->testMode = $testMode;
 		return $this;
@@ -499,8 +450,8 @@ class Auth
 	/**
 	 * Set Cookie
 	 *
-	 * @param string $value
-	 * @param mixed  $expire if set as false, it will delete the cookie
+	 * @param string     $value
+	 * @param int|false  $expire if set as false, it will delete the cookie
 	 *
 	 * @return void
 	 */
@@ -508,26 +459,28 @@ class Auth
 	{
 		$appConfig = $this->cookieConfig;
 
-		$deleteCookie = (is_bool($expire) && ! $expire && empty($value));
+		$deleteCookie = (is_bool($expire) && !$expire && empty($value));
 
-		if ($deleteCookie)
-		{
+		if ($deleteCookie) {
 			$expire = time() - 3600;
 
 			// make sure that getCurrentSessionHash will not get the cookie
 			unset($_COOKIE[$appConfig->cookiePrefix . $this->config->cookieName]);
 		}
 
-		if (! $this->testMode)
-		{
-			setcookie($appConfig->cookiePrefix . $this->config->cookieName, $value, $expire, 
-				$appConfig->cookiePath, $appConfig->cookieDomain,
-				$appConfig->cookieSecure, $appConfig->cookieHTTPOnly
+		if (!$this->testMode) {
+			setcookie(
+				$appConfig->cookiePrefix . $this->config->cookieName,
+				$value,
+				$expire,
+				$appConfig->cookiePath,
+				$appConfig->cookieDomain,
+				$appConfig->cookieSecure,
+				$appConfig->cookieHTTPOnly,
 			);
 		}
 
-		if (! $deleteCookie)
-		{
+		if (!$deleteCookie) {
 			// make it available immediately for getCurrentSessionHash
 			$_COOKIE[$appConfig->cookiePrefix . $this->config->cookieName] = $value;
 		}
@@ -537,7 +490,7 @@ class Auth
 	 * Removes all existing sessions for a given UID
 	 * @param int $uid
 	 *
-	 * @return boolean
+	 * @return bool
 	 */
 	protected function deleteExistingSessions(int $uid)
 	{
@@ -545,7 +498,9 @@ class Auth
 
 		$sessTable->deleteBy(['uid' => $uid]);
 
-		$this->setcookie();
+		$this->setCookie();
+		
+		return true;
 	}
 
 	/**
@@ -561,45 +516,38 @@ class Auth
 
 		$sessTable->deleteBy(['hash' => $hash]);
 
-		$this->setcookie();
+		$this->setCookie();
 	}
 
 	/**
 	 * Function to check if a session is valid
 	 *
-	 * @param mixed $hash
+	 * @param string $hash
 	 *
-	 * @return boolean
+	 * @return bool
 	 */
-	public function checkSession($hash)
+	public function checkSession(string $hash)
 	{
-		if (! is_string($hash))
-		{
-			return false;
-		}
 
 		$ip = $this->getIp();
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			$return['message'] = lang("Auth.user_blocked");
 			return false;
 		}
 
-		if (strlen($hash) != self::HASH_LENGTH)
-		{
+		if (strlen($hash) != self::HASH_LENGTH) {
 			return false;
 		}
 
 		$sessionTable = DB::table($this->config->authSessionTable);
 
 		$row = $sessionTable
-					->select('id, uid, expire_date, ip, agent, cookie_crc')
-					->asArray()
-					->findOneBy(['hash' => $hash]);
+			->select('id, uid, expire_date, ip, agent, cookie_crc')
+			->asArray()
+			->findOneBy(['hash' => $hash]);
 
-		if (! is_array($row))
-		{
+		if (!is_array($row)) {
 			return false;
 		}
 
@@ -609,21 +557,17 @@ class Auth
 		$dbIP        = $row['ip'];
 		$dbCookie    = $row['cookie_crc'];
 
-		if ($currentdate > $expireDate)
-		{
+		if ($currentdate > $expireDate) {
 			$this->deleteSession($hash);
 			return false;
 		}
 
-		if ($ip !== $dbIP)
-		{
+		if ($ip !== $dbIP) {
 			return false;
 		}
 
-		if ($dbCookie === sha1($hash . $this->config->siteKey))
-		{
-			if ($expireDate - $currentdate < strtotime($this->config->cookieRenew) - $currentdate)
-			{
+		if ($dbCookie === sha1($hash . $this->config->siteKey)) {
+			if ($expireDate - $currentdate < strtotime($this->config->cookieRenew) - $currentdate) {
 				$this->deleteSession($hash);
 				$this->addSession($uid, false);
 			}
@@ -638,7 +582,7 @@ class Auth
 	 *
 	 * @param string $email
 	 *
-	 * @return boolean
+	 * @return bool
 	 */
 	public function isEmailTaken(string $email)
 	{
@@ -651,12 +595,12 @@ class Auth
 
 	/**
 	 * Adds a new user to database
-	 * @param string  $email      -- email
-	 * @param string  $password   -- password
-	 * @param array   $params      -- additional params
-	 * @param boolean $useEmailActivation  -- activate email confirm or not
+	 * @param string $email      -- email
+	 * @param string $password   -- password
+	 * @param array  $params      -- additional params
+	 * @param bool   $useEmailActivation  -- activate email confirm or not
 	 *
-	 * @return int $uid
+	 * @return array{error: bool, message?: string}
 	 */
 	protected function addUser(string $email, string $password, array $params = [], bool $useEmailActivation = true)
 	{
@@ -664,22 +608,19 @@ class Auth
 
 		$validateEmail = $this->validateEmail($email);
 
-		if ($validateEmail['error'])
-		{
+		if ($validateEmail['error']) {
 			$return['message'] = $validateEmail['message'];
 			return $return;
 		}
 
 		$validatePassword = $this->validatePassword($password);
 
-		if ($validatePassword['error'])
-		{
+		if ($validatePassword['error']) {
 			$return['message'] = $validatePassword['message'];
 			return $return;
 		}
 
-		if ($this->isEmailTaken($email))
-		{
+		if ($this->isEmailTaken($email)) {
 			$return['message'] = lang("Auth.email_taken", [$email]);
 
 			$this->addAttempt('addUser::' . $return['message']);
@@ -691,19 +632,17 @@ class Auth
 
 		$userData = array_merge([
 			'email'    => $email,
-			'password' => $this->getHash($password)
+			'password' => $this->getHash($password),
 		], $params);
 
 		$uid = $userTable->useTimestamp()->insert($userData);
 
 		$email = htmlentities(strtolower($email));
 
-		if ($useEmailActivation)
-		{
+		if ($useEmailActivation) {
 			$addRequest = $this->addRequest($uid, $email, "activation", $useEmailActivation);
 
-			if ($addRequest['error'])
-			{
+			if ($addRequest['error']) {
 				// @codeCoverageIgnoreStart
 				$userTable->delete($uid);
 
@@ -713,9 +652,7 @@ class Auth
 			}
 
 			$userTable->updateBy(['active' => 0], ['id' => $uid]);
-		}
-		else
-		{
+		} else {
 			$userTable->updateBy(['active' => 1], ['id' => $uid]);
 		}
 
@@ -729,26 +666,21 @@ class Auth
 	 *
 	 * @param int    $uid
 	 * @param string $password
-	 * @return array $return
+	 * @return array{error: bool, message: string}
 	 */
 	public function secureDeleteAccount(int $uid, string $password)
 	{
 		$return['error'] = true;
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			// @codeCoverageIgnoreStart
 			$return['message'] = lang("Auth.user_blocked");
 			// @codeCoverageIgnoreEnd
-		}
-		elseif (! $this->matchUserPassword($uid, $password))
-		{
+		} elseif (!$this->matchUserPassword($uid, $password)) {
 			$return['message'] = lang("Auth.password_incorrect");
 
 			$this->addAttempt('secureDeleteAccount::' . $return['message']);
-		}
-		else
-		{
+		} else {
 			$return = $this->deleteAccount($uid);
 		}
 
@@ -759,7 +691,7 @@ class Auth
 	 * Force delete account without password
 	 *
 	 * @param int $uid
-	 * @return mixed
+	 * @return array{error: bool, message: string}
 	 */
 	public function deleteAccount(int $uid)
 	{
@@ -784,34 +716,32 @@ class Auth
 	/**
 	 * Creates an activation entry and sends email to user
 	 *
-	 * @param int     $uid
-	 * @param string  $email
-	 * @param string  $type
-	 * @param boolean $sendEmail
+	 * @param int    $uid
+	 * @param string $email
+	 * @param string $type
+	 * @param bool   $sendEmail
 	 *
-	 * @return boolean
+	 * @return array{error: bool, message?: string}
 	 */
 	protected function addRequest(int $uid, string $email, string $type, bool $sendEmail = true)
 	{
 		$return['error'] = true;
 
-		$requestTypeExist = $type.'_exists';
+		$requestTypeExist = $type . '_exists';
 
 		$reqTable = DB::table($this->config->authRequestTable);
 		$request  = $reqTable->select('id, expire_date')
-				->asArray()
-				->findOneBy([
-					'uid'  => $uid,
-					'type' => $type
-				]);
+			->asArray()
+			->findOneBy([
+				'uid'  => $uid,
+				'type' => $type,
+			]);
 
-		if (is_array($request))
-		{
+		if (is_array($request)) {
 			$expireDate  = strtotime($request['expire_date']);
 			$currentDate = strtotime(date("Y-m-d H:i:s"));
 
-			if ($currentDate < $expireDate)
-			{
+			if ($currentDate < $expireDate) {
 				$return['message'] = lang('Auth.' . $requestTypeExist);
 				return $return;
 			}
@@ -829,12 +759,10 @@ class Auth
 			'type'        => $type,
 		]);
 
-		if ($sendEmail)
-		{
+		if ($sendEmail) {
 			$sendmailStatus = $this->sendMail($email, $type, $token);
 
-			if ($sendmailStatus['error'])
-			{
+			if ($sendmailStatus['error']) {
 				$this->deleteRequest($requestId);
 
 				$return['message'] = $sendmailStatus['message'];
@@ -859,11 +787,11 @@ class Auth
 	{
 		$reqTable = DB::table($this->config->authRequestTable);
 		$request  = $reqTable->select('token')
-				->asObject()
-				->findOneBy([
-					'uid'  => $uid,
-					'type' => $type
-				]);
+			->asObject()
+			->findOneBy([
+				'uid'  => $uid,
+				'type' => $type,
+			]);
 
 		return is_object($request) ? $request->token : null;
 	}
@@ -873,7 +801,7 @@ class Auth
 	 * @param string $key
 	 * @param string $type
 	 *
-	 * @return mixed[] $return
+	 * @return array{error: bool, message?: string, id?: int, uid?: int}
 	 */
 	public function getRequest(string $key, string $type)
 	{
@@ -884,27 +812,25 @@ class Auth
 		$row = $reqTable->select('id, uid, expire_date')
 			->asArray()
 			->findOneBy([
-				'token' => $key, 
-				'type'  => $type
+				'token' => $key,
+				'type'  => $type,
 			]);
 
-		if (! is_array($row))
-		{
-			$return['message'] = lang( 'Auth.' . $type . 'key_incorrect' );
+		if (!is_array($row)) {
+			$return['message'] = lang('Auth.' . $type . 'key_incorrect');
 
 			$this->addAttempt('getRequest::' . $return['message']);
 
 			return $return;
 		}
 
-		$expireDate = strtotime($row['expire_date']);
+		$expireDate  = strtotime($row['expire_date']);
 		$currentdate = strtotime(date("Y-m-d H:i:s"));
 
-		if ($currentdate > $expireDate)
-		{
+		if ($currentdate > $expireDate) {
 			$this->deleteRequest($row['id']);
 
-			$return['message'] = lang( 'Auth.' . $type . 'key_expired' );
+			$return['message'] = lang('Auth.' . $type . 'key_expired');
 
 			$this->addAttempt('getRequest::' . $return['message']);
 
@@ -922,7 +848,7 @@ class Auth
 	 * Delete request from database
 	 *
 	 * @param int $id
-	 * @return boolean
+	 * @return bool
 	 */
 	protected function deleteRequest(int $id)
 	{
@@ -935,26 +861,23 @@ class Auth
 	 *
 	 * @param string $password
 	 *
-	 * @return mixed[]
+	 * @return array{error: bool, message?: string}
 	 */
 	protected function validatePassword(string $password)
 	{
 		$state['error'] = false;
 
-		if (strlen($password) < (int)$this->config->passwordMinLength )
-		{
+		if (strlen($password) < (int) $this->config->passwordMinLength) {
 			$state['error']   = true;
 			$state['message'] = lang("Auth.password_short");
 
 			return $state;
 		}
 
-		if ($this->config->validatePasswordStrength)
-		{
+		if ($this->config->validatePasswordStrength) {
 			$zxcvbn = new Zxcvbn();
 
-			if ($zxcvbn->passwordStrength($password)['score'] < intval($this->config->passwordMinScore))
-			{
+			if ($zxcvbn->passwordStrength($password)['score'] < intval($this->config->passwordMinScore)) {
 				$state['error']   = true;
 				$state['message'] = lang('Auth.password_weak');
 
@@ -962,31 +885,26 @@ class Auth
 			}
 		}
 
-			return $state;
+		return $state;
 	}
 
 	/**
 	 * Verifies that an email is valid
 	 * @param string $email
 	 *
-	 * @return mixed[]
+	 * @return array{error: bool, message?: string}
 	 */
 	protected function validateEmail(string $email)
 	{
 		$state['error'] = true;
 
-		if (strlen($email) < (int)$this->config->verifyEmailMinLength)
-		{
+		if (strlen($email) < (int) $this->config->verifyEmailMinLength) {
 			$state['message'] = lang('Auth.email_short', [$this->config->verifyEmailMinLength]);
 			return $state;
-		}
-		elseif (strlen($email) > (int)$this->config->verifyEmailMaxLength)
-		{
+		} elseif (strlen($email) > (int) $this->config->verifyEmailMaxLength) {
 			$state['message'] = lang('Auth.email_long', [$this->config->verifyEmailMaxLength]);
 			return $state;
-		}
-		elseif (!filter_var($email, FILTER_VALIDATE_EMAIL))
-		{
+		} elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 			$state['message'] = lang("Auth.email_invalid");
 			return $state;
 		}
@@ -1002,56 +920,41 @@ class Auth
 	 * @param string $password
 	 * @param string $repeatPassword
 	 *
-	 * @return mixed[]
+	 * @return array{error: bool, message: string}
 	 */
 	public function resetPass(string $key, string $password, string $repeatPassword)
 	{
 		$state['error'] = true;
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			// @codeCoverageIgnoreStart
 			$state['message'] = lang("Auth.user_blocked");
 			// @codeCoverageIgnoreEnd
-		}
-		elseif (strlen($key) != self::TOKEN_LENGTH)
-		{
+		} elseif (strlen($key) != self::TOKEN_LENGTH) {
 			$state['message'] = lang("Auth.resetkey_invalid");
-		}
-		else
-		{
+		} else {
 			$validatePasswordState = $this->validatePassword($password);
 
-			if ($validatePasswordState['error'])
-			{
+			if ($validatePasswordState['error']) {
 				$state['message'] = $validatePasswordState['message'];
-			}
-			elseif ($password !== $repeatPassword)
-			{
+			} elseif ($password !== $repeatPassword) {
 				$state['message'] = lang("Auth.newpassword_nomatch");
-			}
-			else
-			{
+			} else {
 				$state['error'] = false;
 			}
 		}
 
-		if (! $state['error'])
-		{
+		if (!$state['error']) {
 			$error = true;
 
 			$request = $this->getRequest($key, 'reset');
 
-			if ($request['error'])
-			{
+			if ($request['error']) {
 				$state['message'] = $request['message'];
-			}
-			else
-			{
+			} else {
 				$user = $this->getUser($request['uid'], true);
 
-				if (!$user)
-				{
+				if (!$user) {
 					// @codeCoverageIgnoreStart
 					$this->deleteRequest($request['id']);
 
@@ -1059,15 +962,11 @@ class Auth
 
 					$this->addAttempt('resetPass::' . $state['message']);
 					// @codeCoverageIgnoreEnd
-				}
-				elseif (password_verify($password, $user['password']))
-				{
+				} elseif (password_verify($password, $user['password'])) {
 					$state['message'] = lang("Auth.newpassword_match");
 
 					$this->addAttempt('resetPass::' . $state['message']);
-				}
-				else
-				{
+				} else {
 					$password = $this->getHash($password);
 
 					$userTable = DB::table($this->config->userTable);
@@ -1092,30 +991,27 @@ class Auth
 	 *
 	 * @param string $email
 	 *
-	 * @return mixed[]
+	 * @return array{error: bool, message: string}
 	 */
 	public function resendActivation(string $email)
 	{
 		$state['error'] = true;
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			$state['message'] = lang("Auth.user_blocked");
 			return $state;
 		}
 
 		$validateEmail = $this->validateEmail($email);
 
-		if ($validateEmail['error'])
-		{
+		if ($validateEmail['error']) {
 			$state['message'] = $validateEmail['message'];
 			return $state;
 		}
 
 		$uid = $this->getUID($email);
 
-		if (! $uid)
-		{
+		if (!$uid) {
 			$state['message'] = lang("Auth.email_incorrect");
 
 			$this->addAttempt('resendActivation::' . $state['message']);
@@ -1125,8 +1021,7 @@ class Auth
 
 		$user = $this->getUser($uid);
 
-		if ((bool) $user['active']) 
-		{
+		if ((bool) $user['active']) {
 			$state['message'] = lang("Auth.already_activated");
 
 			$this->addAttempt('resendActivation::' . $state['message']);
@@ -1136,8 +1031,7 @@ class Auth
 
 		$addRequest = $this->addRequest($uid, $email, 'activation');
 
-		if ($addRequest['error'])
-		{
+		if ($addRequest['error']) {
 			$state['message'] = $addRequest['message'];
 
 			$this->addAttempt('resendActivation::' . $state['message']);
@@ -1145,7 +1039,7 @@ class Auth
 			return $state;
 		}
 
-		$state['error'] = false;
+		$state['error']   = false;
 		$state['message'] = lang("Auth.activation_sent");
 		return $state;
 	}
@@ -1158,74 +1052,56 @@ class Auth
 	 * @param string $newPassword
 	 * @param string $repeatNewPassword
 	 *
-	 * @return array $return
+	 * @return array{error: bool, message: string}
 	 */
 	public function changePassword(int $uid, string $currentPassword, string $newPassword, string $repeatNewPassword)
 	{
 		$return['error'] = true;
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			$return['message'] = lang("Auth.user_blocked");
-		}
-		else
-		{
+		} else {
 			$validatePassword = $this->validatePassword($currentPassword);
 
-			if ($validatePassword['error'])
-			{
+			if ($validatePassword['error']) {
 				$return['message'] = $validatePassword['message'];
 
 				$this->addAttempt('changePassword::' . $return['message']);
-			}
-			else
-			{
+			} else {
 				$validatePassword = $this->validatePassword($newPassword);
 
-				if ($validatePassword['error'])
-				{
+				if ($validatePassword['error']) {
 					$return['message'] = $validatePassword['message'];
 
 					$this->addAttempt('changePassword::' . $return['message']);
-				}
-				elseif ($newPassword !== $repeatNewPassword)
-				{
+				} elseif ($newPassword !== $repeatNewPassword) {
 					$return['message'] = lang("Auth.newpassword_nomatch");
 
 					$this->addAttempt('changePassword::' . $return['message']);
-				}
-				else
-				{
+				} else {
 					$return['error'] = false;
 				}
 			}
 		}
 
-		if (!$return['error'])
-		{
+		if (!$return['error']) {
 			$return['error'] = true;
 
 			$user = $this->getUser($uid, true);
 
-			if (!$user)
-			{
+			if (!$user) {
 				$return['message'] = lang("Auth.account_not_found");
 
 				$this->addAttempt('changePassword::' . $return['message']);
-			}
-			elseif (! password_verify($currentPassword, $user['password']))
-			{
+			} elseif (!password_verify($currentPassword, $user['password'])) {
 				$return['message'] = lang("Auth.password_incorrect");
 
 				$this->addAttempt('changePassword::' . $return['message']);
-			}
-			else
-			{
+			} else {
 				$return['error'] = false;
 			}
 
-			if (!$return['error'])
-			{
+			if (!$return['error']) {
 				$newPassword = $this->getHash($newPassword);
 
 				$userTable = DB::table($this->config->userTable);
@@ -1246,44 +1122,33 @@ class Auth
 	 * @param string $email
 	 * @param string $password
 	 *
-	 * @return mixed[]
+	 * @return array{error: bool, message: string}
 	 */
-	public function changeEmail(int $uid, $email, $password)
+	public function changeEmail(int $uid, string $email, string $password)
 	{
 		$return['error'] = true;
 
-		if ($this->isIPLocked())
-		{
+		if ($this->isIPLocked()) {
 			$return['message'] = lang("Auth.user_blocked");
-		}
-		elseif (! $this->matchUserPassword($uid, $password))
-		{
+		} elseif (!$this->matchUserPassword($uid, $password)) {
 			$return['message'] = lang("Auth.password_incorrect");
 
 			$this->addAttempt('changeEmail::' . $return['message']);
-		}
-		elseif ($this->isEmailTaken($email))
-		{
+		} elseif ($this->isEmailTaken($email)) {
 			$return['message'] = lang("Auth.email_taken", [$email]);
 
 			$this->addAttempt('changeEmail::' . $return['message']);
-		}
-		else
-		{
+		} else {
 			$validateEmail = $this->validateEmail($email);
 
-			if ($validateEmail['error'])
-			{
+			if ($validateEmail['error']) {
 				$return['message'] = $validateEmail['message'];
-			}
-			else
-			{
+			} else {
 				$return['error'] = false;
 			}
 		}
 
-		if (!$return['error'])
-		{
+		if (!$return['error']) {
 			$userTable = DB::table($this->config->userTable);
 
 			$userTable->update($uid, ['email' => $email]);
@@ -1296,7 +1161,7 @@ class Auth
 
 	/**
 	 * Check if IP was locked out
-	 * @return boolean
+	 * @return bool
 	 */
 	public function isIPLocked()
 	{
@@ -1316,7 +1181,7 @@ class Auth
 	 *
 	 * @param string $note
 	 *
-	 * @return boolean
+	 * @return bool
 	 */
 	protected function addAttempt(string $note = '')
 	{
@@ -1337,6 +1202,7 @@ class Auth
 	 * Deletes expired attempts from the database
 	 *
 	 * @param string $ip
+	 * @return bool
 	 */
 	protected function deleteExpiredAttempts(string $ip = 'all')
 	{
@@ -1344,8 +1210,7 @@ class Auth
 
 		$tblAttempts->where('NOW() > expire_date', null, false);
 
-		if ($ip !== 'all')
-		{
+		if ($ip !== 'all') {
 			$tblAttempts->where('ip', $ip);
 		}
 
@@ -1356,7 +1221,7 @@ class Auth
 	 * Returns a random string of a specified length
 	 * @param int $length
 	 *
-	 * @return string $key
+	 * @return string
 	 */
 	public function getRandomKey(int $length = self::TOKEN_LENGTH)
 	{
@@ -1366,9 +1231,8 @@ class Auth
 
 		$key = '';
 
-		for ($i = 0; $i < $length; $i++)
-		{
-			$key .= $dictionary[ mt_rand(0, $dictionaryLength - 1) ];
+		for ($i = 0; $i < $length; $i++) {
+			$key .= $dictionary[mt_rand(0, $dictionaryLength - 1)];
 		}
 
 		return $key;
@@ -1376,38 +1240,25 @@ class Auth
 
 	/**
 	 * Returns IP address
-	 * @return string $ip
+	 * @return string
 	 *
 	 * @codeCoverageIgnore
 	 */
 	protected function getIp()
 	{
-		if (getenv('HTTP_CLIENT_IP'))
-		{
+		if (getenv('HTTP_CLIENT_IP')) {
 			$ipAddress = getenv('HTTP_CLIENT_IP');
-		}
-		elseif (getenv('HTTP_X_FORWARDED_FOR'))
-		{
+		} elseif (getenv('HTTP_X_FORWARDED_FOR')) {
 			$ipAddress = getenv('HTTP_X_FORWARDED_FOR');
-		}
-		elseif (getenv('HTTP_X_FORWARDED'))
-		{
+		} elseif (getenv('HTTP_X_FORWARDED')) {
 			$ipAddress = getenv('HTTP_X_FORWARDED');
-		}
-		elseif (getenv('HTTP_FORWARDED_FOR'))
-		{
+		} elseif (getenv('HTTP_FORWARDED_FOR')) {
 			$ipAddress = getenv('HTTP_FORWARDED_FOR');
-		}
-		elseif (getenv('HTTP_FORWARDED'))
-		{
+		} elseif (getenv('HTTP_FORWARDED')) {
 			$ipAddress = getenv('HTTP_FORWARDED');
-		}
-		elseif (getenv('REMOTE_ADDR'))
-		{
+		} elseif (getenv('REMOTE_ADDR')) {
 			$ipAddress = getenv('REMOTE_ADDR');
-		}
-		else
-		{
+		} else {
 			$ipAddress = '127.0.0.1';
 		}
 
@@ -1416,12 +1267,11 @@ class Auth
 
 	/**
 	 * Returns is user logged in
-	 * @return boolean
+	 * @return bool
 	 */
-	public function isLogged() 
+	public function isLogged()
 	{
-		if ($this->isAuthenticated === false) 
-		{
+		if ($this->isAuthenticated === false) {
 			$this->isAuthenticated = $this->checkSession($this->getCurrentSessionHash());
 		}
 		return $this->isAuthenticated;
@@ -1434,7 +1284,7 @@ class Auth
 	 * @param string $passwordChecked
 	 * @return bool
 	 */
-	public function matchUserPassword($userid, $passwordChecked)
+	public function matchUserPassword(int $userid, string $passwordChecked)
 	{
 		$userTable = DB::table($this->config->userTable);
 
@@ -1447,17 +1297,16 @@ class Auth
 	 * Check if users password needs to be rehashed
 	 * @param string $password
 	 * @param string $hash
-	 * @param int $uid
+	 * @param int    $uid
 	 * @return bool
 	 */
-	public function passwordVerifyWithRehash($password, $hash, int $uid)
+	public function passwordVerifyWithRehash(string $password, string $hash, int $uid)
 	{
-		if (! password_verify($password, $hash)) {
+		if (!password_verify($password, $hash)) {
 			return false;
 		}
 
-		if (password_needs_rehash($hash, PASSWORD_DEFAULT, ['cost' => $this->config->bcryptCost]))
-		{
+		if (password_needs_rehash($hash, PASSWORD_DEFAULT, ['cost' => $this->config->bcryptCost])) {
 			$hash = $this->getHash($password);
 
 			$userTable = DB::table($this->config->userTable);
@@ -1473,18 +1322,17 @@ class Auth
 	 * @param string $email
 	 * @param string $type
 	 * @param string $key
-	 * @return array $return (contains error code and error message)
+	 * @return array{error: bool, message?: string}
 	 */
 	public function sendMail(string $email, string $type, string $key)
 	{
 		helper('url');
 
 		$return = [
-			'error' => true
+			'error' => true,
 		];
 
-		if (! in_array($type, ['activation', 'reset']))
-		{
+		if (!in_array($type, ['activation', 'reset'])) {
 			$return['message'] = lang('Auth.unknown_mail_type');
 
 			return $return;
@@ -1496,19 +1344,15 @@ class Auth
 		$mailSubject = '';
 		$mailMessage = '';
 
-		if ($type == 'activation')
-		{
+		if ($type == 'activation') {
 			$mailSubject = lang('Auth.email_activation_subject', [$this->config->siteName]);
 			$mailMessage = lang('Auth.email_activation_body', [site_url(), $this->config->siteActivationPage, $key]);
-		}
-		elseif ($type == 'reset')
-		{
+		} elseif ($type == 'reset') {
 			$mailSubject = lang('Auth.email_reset_subject', [$this->config->siteName]);
 			$mailMessage = lang('Auth.email_reset_body', [site_url(), $this->config->sitePasswordResetPage, $key]);
 		}
 
-		if (is_callable($callbackSendEmailFn))
-		{
+		if (is_callable($callbackSendEmailFn)) {
 			// Use the callback function to send the email
 			try {
 				$success = $callbackSendEmailFn([
@@ -1516,7 +1360,7 @@ class Auth
 					'fromName'  => $this->config->siteName,
 					'to'        => $email,
 					'subject'   => $mailSubject,
-					'message'   => $mailMessage
+					'message'   => $mailMessage,
 				]);
 
 				if ($success) {
@@ -1525,7 +1369,7 @@ class Auth
 					$return['message'] = lang('Auth.' . $type . '_email_not_sent'); // Or a more specific message from the callback
 				}
 			} catch (\Exception $e) {
-				log_message('error','failed to send email using callback:' . $e->getMessage());
+				log_message('error', 'failed to send email using callback:' . $e->getMessage());
 				// @codeCoverageIgnoreStart
 				$return['message'] = lang('Auth.' . $type . '_email_not_sent'); // Or a more specific message from the callback
 				// @codeCoverageIgnoreEnd
@@ -1537,8 +1381,7 @@ class Auth
 		$mail = \Config\Services::email();
 
 		// Check configuration for custom SMTP parameters
-		try
-		{
+		try {
 			//Recipients
 			$mail->setFrom($this->config->siteEmail, $this->config->siteName);
 			$mail->setTo($email);
@@ -1547,9 +1390,8 @@ class Auth
 			$mail->setSubject($mailSubject);
 			$mail->setMessage($mailMessage);
 
-			if (!$mail->send())
-			{
-				log_message('error','failed to send email using php mailer:' . $mail->printDebugger());
+			if (!$mail->send()) {
+				log_message('error', 'failed to send email using php mailer:' . $mail->printDebugger());
 				// @codeCoverageIgnoreStart
 				$return['message'] = lang('Auth.' . $type . '_email_not_sent');
 				return $return;
@@ -1559,8 +1401,7 @@ class Auth
 			$return['error'] = false;
 		}
 		// @codeCoverageIgnoreStart
-		catch (\Exception $e)
-		{
+		catch (\Exception $e) {
 			$return['message'] = lang('Auth.' . $type . '_email_not_sent');
 		}
 		// @codeCoverageIgnoreEnd
@@ -1572,11 +1413,11 @@ class Auth
 	 * @param int   $uid
 	 * @param array $params
 	 *
-	 * @return mixed[]
+	 * @return bool
 	 */
 	public function updateUser(int $uid, array $params)
 	{
-	    $userTable = DB::table($this->config->userTable);
+		$userTable = DB::table($this->config->userTable);
 
 		return $userTable->save(array_merge($params, ['id' => $uid]));
 	}
@@ -1587,7 +1428,7 @@ class Auth
 	 * @param int  $uid
 	 * @param bool $withPassword
 	 *
-	 * @return mixed[]
+	 * @return array|false
 	 */
 	public function getUser(int $uid, bool $withPassword = false)
 	{
@@ -1595,12 +1436,10 @@ class Auth
 
 		$data = $userTable->asArray()->find($uid);
 
-		if (is_array($data))
-		{
+		if (is_array($data)) {
 			$data['uid'] = $uid;
 
-			if (! $withPassword)
-			{
+			if (!$withPassword) {
 				unset($data['password']);
 			}
 		}
@@ -1611,25 +1450,23 @@ class Auth
 	/**
 	 * Gets user data for a loginID
 	 *
-	 * @param string|int  $loginID
-	 * @param bool        $withPassword
+	 * @param string|int $loginID
+	 * @param bool       $withPassword
 	 *
-	 * @return mixed[]
+	 * @return array|false
 	 */
 	public function getUserByLoginID($loginID, bool $withPassword = false)
 	{
 		$userTable = DB::table($this->config->userTable);
 
 		$data = $userTable->asArray()->findOneBy([
-			$this->config->loginID => $loginID
+			$this->config->loginID => $loginID,
 		]);
 
-		if (is_array($data))
-		{
+		if (is_array($data)) {
 			$data['uid'] = $data['id'];
 
-			if (! $withPassword)
-			{
+			if (!$withPassword) {
 				unset($data['password']);
 			}
 		}
@@ -1642,7 +1479,7 @@ class Auth
 	 *
 	 * @param string $email
 	 *
-	 * @return int|boolean user id|false
+	 * @return int|false
 	 */
 	public function getUID(string $email)
 	{
@@ -1666,7 +1503,7 @@ class Auth
 	/**
 	 * Returns current session hash
 	 *
-	 * @return string|boolean
+	 * @return string
 	 */
 	public function getCurrentSessionHash()
 	{
@@ -1678,7 +1515,7 @@ class Auth
 	 *
 	 * @param string $hash
 	 *
-	 * @return int $uid
+	 * @return int|false
 	 */
 	public function getSessionUID(string $hash)
 	{
@@ -1692,14 +1529,12 @@ class Auth
 	}
 
 	/**
-	* Gets user data for current user (from cookie/session_hash) and returns an array, password is not returned
-	* @return array $data
-	* @return boolean false if no current user
-	*/
+	 * Gets user data for current user (from cookie/session_hash) and returns an array, password is not returned
+	 * @return array|false
+	 */
 	public function getCurrentUser()
 	{
-		if ($uid = $this->getCurrentUID())
-		{
+		if ($uid = $this->getCurrentUID()) {
 			$this->currentUser = $this->getUser($uid);
 		}
 
@@ -1709,7 +1544,7 @@ class Auth
 	/**
 	 * Get all user roles
 	 *
-	 * @return mixed[]
+	 * @return array
 	 */
 	public function getRoles()
 	{
@@ -1723,7 +1558,7 @@ class Auth
 	/**
 	 * Get all user groups
 	 *
-	 * @return mixed[]
+	 * @return array
 	 */
 	public function getGroups()
 	{
@@ -1737,9 +1572,9 @@ class Auth
 	/**
 	 * Check if current user has roles
 	 *
-	 * @param mixed[] $roles array of role_id or role name
+	 * @param array $roles array of role_id or role name
 	 *
-	 * @return boolean
+	 * @return bool
 	 */
 	public function hasRoles(array $roles = [])
 	{
@@ -1747,27 +1582,20 @@ class Auth
 
 		$user = $this->getCurrentUser();
 
-		if ($user)
-		{
+		if ($user) {
 			$role_id = (int) $user['role_id'];
 
 			$hasValidRole = array_key_exists($role_id, $this->roles);
 
-			if ($hasValidRole)
-			{
-				foreach ($roles as $role)
-				{
-					if (is_numeric($role))
-					{
+			if ($hasValidRole) {
+				foreach ($roles as $role) {
+					if (is_numeric($role)) {
 						$hasRole = $hasRole || $role === $role_id;
-					}
-					else
-					{
+					} else {
 						$hasRole = $hasRole || $role === $this->roles[$role_id];
 					}
 
-					if ($hasRole)
-					{
+					if ($hasRole) {
 						break;
 					}
 				}
@@ -1780,15 +1608,14 @@ class Auth
 	/**
 	 * Protect page with required roles only
 	 *
-	 * @param mixed[] $roles
-	 * @param string  $namedRouteRedirect
+	 * @param array  $roles
+	 * @param string $namedRouteRedirect
 	 *
 	 * @codeCoverageIgnore
 	 */
 	public function requiredRoles(array $roles = [], string $namedRouteRedirect = 'forbidden-role')
 	{
-		if (!$this->hasRoles($roles))
-		{
+		if (!$this->hasRoles($roles)) {
 			redirect()->route($namedRouteRedirect)->send();
 			exit;
 		}
@@ -1797,9 +1624,9 @@ class Auth
 	/**
 	 * Check if current user in spesific groups
 	 *
-	 * @param mixed[] $groups array of group_id or group name
+	 * @param array $groups array of group_id or group name
 	 *
-	 * @return boolean
+	 * @return bool
 	 */
 	public function inGroups(array $groups = [])
 	{
@@ -1807,27 +1634,20 @@ class Auth
 
 		$user = $this->getCurrentUser();
 
-		if ($user)
-		{
+		if ($user) {
 			$group_id = (int) $user['group_id'];
 
 			$hasValidGroup = array_key_exists($group_id, $this->groups);
 
-			if ($hasValidGroup)
-			{
-				foreach ($groups as $group)
-				{
-					if (is_numeric($group))
-					{
+			if ($hasValidGroup) {
+				foreach ($groups as $group) {
+					if (is_numeric($group)) {
 						$inGroup = $inGroup || $group === $group_id;
-					}
-					else
-					{
+					} else {
 						$inGroup = $inGroup || $group === $this->groups[$group_id];
 					}
 
-					if ($inGroup)
-					{
+					if ($inGroup) {
 						break;
 					}
 				}
@@ -1840,15 +1660,14 @@ class Auth
 	/**
 	 * Protect page with required groups only
 	 *
-	 * @param mixed[] $groups
-	 * @param string  $namedRouteRedirect
+	 * @param array  $groups
+	 * @param string $namedRouteRedirect
 	 *
 	 * @codeCoverageIgnore
 	 */
 	public function requiredGroups(array $groups = [], string $namedRouteRedirect = 'forbidden-group')
 	{
-		if (!$this->inGroups($groups))
-		{
+		if (!$this->inGroups($groups)) {
 			redirect()->route($namedRouteRedirect)->send();
 			exit;
 		}
@@ -1857,6 +1676,7 @@ class Auth
 	/**
 	 * Deletes expired sessions from the database
 	 *
+	 * @return bool
 	 * @codeCoverageIgnore
 	 */
 	private function deleteExpiredSessions()
@@ -1871,6 +1691,7 @@ class Auth
 	/**
 	 * Deletes expired requests from the database
 	 *
+	 * @return bool
 	 * @codeCoverageIgnore
 	 */
 	private function deleteExpiredRequests()
@@ -1885,8 +1706,9 @@ class Auth
 	/**
 	 * Daily cron job to remove expired data from the database
 	 *
-     * @codeCoverageIgnore
-     */
+	 * @return void
+	 * @codeCoverageIgnore
+	 */
 	public function cron()
 	{
 		$this->deleteExpiredAttempts();
