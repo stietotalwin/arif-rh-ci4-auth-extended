@@ -20,12 +20,13 @@
         }
     ],
     "require": {
+        "php": "^8.2",
         "bjeavons/zxcvbn-php": "^1.0",
         "stietotalwin/arif-rh-ci4-dynamic-model-extended": "^1.0"
     },
     "require-dev": {
-        "codeigniter4/framework": "^4.1",
-        "phpunit/phpunit": "8.5.*"
+        "codeigniter4/framework": "^4.7",
+        "phpunit/phpunit": "^10.5"
     },
     "autoload": {
         "psr-4": {

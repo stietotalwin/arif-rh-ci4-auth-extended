@@ -75,7 +75,7 @@ class Auth
 	 *
 	 * @return void
 	 */
-	public function __construct(BaseConfig $config = null)
+	public function __construct(?BaseConfig $config = null)
 	{
 		$this->getConfig($config);
 
@@ -96,7 +96,7 @@ class Auth
 	 *
 	 * @return void
 	 */
-	public function getConfig(BaseConfig $config = null)
+	public function getConfig(?BaseConfig $config = null)
 	{
 		if ($config instanceof BaseConfig) {
 			$this->config = $config;
@@ -104,7 +104,7 @@ class Auth
 			$this->config = \CodeIgniter\Config\Factories::config('Auth');
 		}
 
-		$this->cookieConfig = config(\Config\App::class);
+		$this->cookieConfig = config(\Config\Cookie::class);
 
 		$tblConfig  = DB::table($this->config->configTable);
 		$configVals = $tblConfig->asObject()->findAll();
@@ -463,24 +463,24 @@ class Auth
 			$expire = time() - 3600;
 
 			// make sure that getCurrentSessionHash will not get the cookie
-			unset($_COOKIE[$appConfig->cookiePrefix . $this->config->cookieName]);
+			unset($_COOKIE[$appConfig->prefix . $this->config->cookieName]);
 		}
 
 		if (!$this->testMode) {
 			setcookie(
-				$appConfig->cookiePrefix . $this->config->cookieName,
+				$appConfig->prefix . $this->config->cookieName,
 				$value,
 				$expire,
-				$appConfig->cookiePath,
-				$appConfig->cookieDomain,
-				$appConfig->cookieSecure,
-				$appConfig->cookieHTTPOnly,
+				$appConfig->path,
+				$appConfig->domain,
+				$appConfig->secure,
+				$appConfig->httponly,
 			);
 		}
 
 		if (!$deleteCookie) {
 			// make it available immediately for getCurrentSessionHash
-			$_COOKIE[$appConfig->cookiePrefix . $this->config->cookieName] = $value;
+			$_COOKIE[$appConfig->prefix . $this->config->cookieName] = $value;
 		}
 	}
 
@@ -1505,7 +1505,7 @@ class Auth
 	 */
 	public function getCurrentSessionHash()
 	{
-		return isset($_COOKIE[$this->cookieConfig->cookiePrefix . $this->config->cookieName]) ? $_COOKIE[$this->cookieConfig->cookiePrefix . $this->config->cookieName] : '';
+		return isset($_COOKIE[$this->cookieConfig->prefix . $this->config->cookieName]) ? $_COOKIE[$this->cookieConfig->prefix . $this->config->cookieName] : '';
 	}
 
 	/**
