@@ -6,6 +6,7 @@ namespace StieTotalWin\Auth\Config;
  * PHPAuth Config class
  */
 
+#[\AllowDynamicProperties]
 class Auth extends \CodeIgniter\Config\BaseConfig
 {
 	/**

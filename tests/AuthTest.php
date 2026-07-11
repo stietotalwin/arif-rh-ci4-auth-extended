@@ -91,6 +91,7 @@ final class AuthTest extends TestCase
 	{
 		$this->auth = new \StieTotalWin\Auth\Auth();
 		$this->auth->testMode();
+		$this->auth->config->sendMailCallback = static fn (array $message): bool => true;
 	}
 
 	public function tearDown(): void
@@ -164,9 +165,7 @@ final class AuthTest extends TestCase
 		$this->assertSame($return['message'], lang('Auth.user_blocked'));
 	}
 
-	/**
-	 * @depends testRegister
-	 */
+	#[\PHPUnit\Framework\Attributes\Depends('testRegister')]
 	public function testLogin()
 	{
 		// clean up previous locked out to do next test
@@ -223,16 +222,28 @@ final class AuthTest extends TestCase
 		$newAuth->testMode();
 
 		// login with correct password for active account, with rehash password
-		$return = $newAuth->login($this->email2, $this->password);
+		$return = $newAuth->login($this->email2, $this->password, true);
 
 		$this->assertFalse($return['error']);
 		$this->assertTrue($newAuth->isLogged());
 		$this->assertSame($return['message'], lang("Auth.logged_in"));
-		$this->assertSame($return['hash'], get_cookie($this->auth->config->cookieName));
+		$this->assertSame($return['hash'], $newAuth->getCurrentSessionHash());
 
-		$user = $this->auth->getCurrentUser();
+		$session = DB::table($newAuth->config->authSessionTable)->findOneBy([
+			'hash' => $return['hash'],
+		]);
+
+		$this->assertIsArray($session);
+		$this->assertEqualsWithDelta(
+			strtotime($newAuth->config->cookieRemember),
+			strtotime($session['expire_date']),
+			2,
+		);
+
+		$user = $newAuth->getCurrentUser();
 
 		$this->assertSame($this->email2, $user['email']);
+		$this->assertSame($newAuth->getUID($this->email2), $user['uid']);
 
 		$this->clearAttemptTest();
 
@@ -326,6 +337,10 @@ final class AuthTest extends TestCase
 		$this->auth->logout($hash);
 
 		// this should be false after logout
+		$this->assertSame('', $this->auth->getCurrentSessionHash());
+		$this->assertNull(
+			DB::table($this->auth->config->authSessionTable)->findOneBy(['hash' => $hash]),
+		);
 		$this->assertFalse($this->auth->checkSession($hash));
 		$this->assertFalse($this->auth->isLogged());
 
@@ -586,6 +601,8 @@ final class AuthTest extends TestCase
 
 	public function testGenerateStrongPassword()
 	{
+		helper('password');
+
 		$weakPassword = 'Admin123';
 
 		$this->assertFalse(\StieTotalWin\Auth\is_strong_password($weakPassword));
