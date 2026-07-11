@@ -126,6 +126,14 @@ final class AuthTest extends TestCase
 		$request->deleteBy(['token' => $token]);
 	}
 
+	public function testGetConfigReturnsTheActiveConfiguration()
+	{
+		$this->assertSame(
+			$this->auth->config,
+			$this->auth->getConfig($this->auth->config)
+		);
+	}
+
 	public function testRegister()
 	{
 		$this->cleanTestdata();
