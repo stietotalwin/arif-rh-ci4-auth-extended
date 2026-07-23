@@ -198,6 +198,11 @@ class AuthMigration extends \CodeIgniter\Database\Migration
 				'type'       => 'CHAR',
 				'constraint' => '39',
 			],
+			'identifier'  => [
+				'type'       => 'VARCHAR',
+				'constraint' => '190',
+				'null'       => true,
+			],
 			'expire_date' => [
 				'type' => 'DATETIME',
 			],
@@ -210,6 +215,7 @@ class AuthMigration extends \CodeIgniter\Database\Migration
 
 		$this->forge->addKey('id', true);
 		$this->forge->addKey('ip');
+		$this->forge->addKey(['ip', 'identifier']);
 
 		$this->forge->createTable($config->authAttemptTable, $this->ifNotExists, $this->attributes);
 	}

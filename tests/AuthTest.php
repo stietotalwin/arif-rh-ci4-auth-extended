@@ -209,7 +209,18 @@ final class AuthTest extends TestCase
 		$this->assertTrue($return['error']);
 		$this->assertSame($return['message'], lang("Auth.account_inactive"));
 
-		// this is the 6th try, so it should be locked out
+		// Lockout is scoped to the (ip, identifier) pair. Start clean, then make
+		// attemptsBeforeLocked (5) consecutive failures for the SAME email.
+		$this->clearAttemptTest();
+
+		for ($i = 0; $i < 5; $i++) {
+			$return = $this->auth->login($this->email, $this->password . 'incorrect');
+
+			$this->assertTrue($return['error']);
+			$this->assertSame($return['message'], lang("Auth.email_password_incorrect"));
+		}
+
+		// The next attempt for this email is now locked out.
 		$return = $this->auth->login($this->email, $this->password);
 
 		$this->assertTrue($return['error']);
@@ -258,6 +269,31 @@ final class AuthTest extends TestCase
 		// login with correct password for active account using loginID
 		$return = $newAuth->loginByLoginID($this->username, $this->password);
 		$this->assertFalse($return['error']);
+	}
+
+	/**
+	 * Two accounts sharing one public IP (e.g. same Wi-Fi/NAT) must not lock
+	 * each other out: the lockout is keyed on (ip, identifier), not ip alone.
+	 */
+	public function testLoginLockoutIsScopedToIdentifier()
+	{
+		$this->clearAttemptTest();
+
+		// Exhaust the lockout threshold for ONE identifier from this IP.
+		for ($i = 0; $i < 5; $i++) {
+			$this->auth->login($this->email, $this->password . 'incorrect');
+		}
+
+		// That identifier is now blocked ...
+		$blocked = $this->auth->login($this->email, $this->password);
+		$this->assertSame($blocked['message'], lang("Auth.user_blocked"));
+
+		// ... but a DIFFERENT identifier from the SAME IP is unaffected.
+		$return = $this->auth->login($this->email2, $this->password);
+		$this->assertFalse($return['error']);
+		$this->assertNotSame($return['message'], lang("Auth.user_blocked"));
+
+		$this->clearAttemptTest();
 	}
 
 	public function testActivateAccount()

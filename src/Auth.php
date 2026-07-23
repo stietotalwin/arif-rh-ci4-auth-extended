@@ -129,7 +129,9 @@ class Auth
 	{
 		$return['error'] = true;
 
-		if ($this->isIPLocked()) {
+		$identifier = strtolower(trim($email));
+
+		if ($this->isIPLocked($identifier)) {
 			$return['message'] = lang("Auth.user_blocked");
 			return $return;
 		}
@@ -139,7 +141,7 @@ class Auth
 		if ($validateEmail['error']) {
 			$return['message'] = $validateEmail['message'];
 
-			$this->addAttempt('Login::' . $return['message']);
+			$this->addAttempt('Login::' . $return['message'], $identifier);
 
 			return $return;
 		}
@@ -148,7 +150,7 @@ class Auth
 		if ($validatePassword['error']) {
 			$return['message'] = $validatePassword['message'];
 
-			$this->addAttempt('Login::' . $return['message']);
+			$this->addAttempt('Login::' . $return['message'], $identifier);
 
 			return $return;
 		}
@@ -158,7 +160,7 @@ class Auth
 		if (!$uid) {
 			$return['message'] = lang("Auth.account_not_found");
 
-			$this->addAttempt('Login::' . $return['message']);
+			$this->addAttempt('Login::' . $return['message'], $identifier);
 
 			return $return;
 		}
@@ -168,7 +170,7 @@ class Auth
 		if (!$this->passwordVerifyWithRehash($password, $user['password'], $uid)) {
 			$return['message'] = lang("Auth.email_password_incorrect");
 
-			$this->addAttempt('Login::' . $return['message']);
+			$this->addAttempt('Login::' . $return['message'], $identifier);
 
 			return $return;
 		}
@@ -176,7 +178,7 @@ class Auth
 		if ((int) $user['active'] !== 1) {
 			$return['message'] = lang("Auth.account_inactive");
 
-			$this->addAttempt('Login::' . $return['message']);
+			$this->addAttempt('Login::' . $return['message'], $identifier);
 
 			return $return;
 		}
@@ -224,7 +226,7 @@ class Auth
 
 		$return['message'] = lang("Auth.account_not_found");
 
-		$this->addAttempt('Login::' . $return['message']);
+		$this->addAttempt('Login::' . $return['message'], strtolower(trim($loginID)));
 
 		return $return;
 	}
@@ -1161,9 +1163,16 @@ class Auth
 
 	/**
 	 * Check if IP was locked out
+	 *
+	 * When $identifier is given (e.g. the login email), the lockout is scoped to
+	 * the (ip, identifier) pair so users sharing one public IP (NAT/Wi-Fi) do not
+	 * lock each other out. An empty $identifier keeps the legacy per-IP behaviour.
+	 *
+	 * @param string $identifier
+	 *
 	 * @return bool
 	 */
-	public function isIPLocked()
+	public function isIPLocked(string $identifier = '')
 	{
 		$ip = $this->getIp();
 
@@ -1171,7 +1180,13 @@ class Auth
 
 		$tblAttempts = DB::table($this->config->authAttemptTable);
 
-		$attempts = $tblAttempts->where('ip', $ip)->findAll();
+		$tblAttempts->where('ip', $ip);
+
+		if ($identifier !== '') {
+			$tblAttempts->where('identifier', $identifier);
+		}
+
+		$attempts = $tblAttempts->findAll();
 
 		return (is_array($attempts) && count($attempts) >= intval($this->config->attemptsBeforeLocked));
 	}
@@ -1180,10 +1195,11 @@ class Auth
 	 * Adds an attempt to database
 	 *
 	 * @param string $note
+	 * @param string $identifier Login identifier (email) this attempt targets, if any
 	 *
 	 * @return bool
 	 */
-	protected function addAttempt(string $note = '')
+	protected function addAttempt(string $note = '', string $identifier = '')
 	{
 		$ip = $this->getIp();
 
@@ -1193,6 +1209,7 @@ class Auth
 
 		return $attempt->insert([
 			'ip'          => $ip,
+			'identifier'  => $identifier !== '' ? $identifier : null,
 			'expire_date' => $attemptExpireDate,
 			'note'        => $note,
 		]);
