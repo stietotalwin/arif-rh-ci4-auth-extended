@@ -41,6 +41,7 @@ return [
 	'newemail_match' => 'メールアドレスが古いメールアドレスと同じです',
 
 	'logged_in'  => 'ログイン中',
+	'login_failed' => 'ログインに失敗しました。',
 	'logged_out' => 'ログアウトしました',
 
 	'system_error' => 'システムエラーです。再度お試しください。',

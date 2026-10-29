@@ -175,30 +175,7 @@ class Auth
 			return $return;
 		}
 
-		if ((int) $user['active'] !== 1) {
-			$return['message'] = lang("Auth.account_inactive");
-
-			$this->addAttempt('Login::' . $return['message'], $identifier);
-
-			return $return;
-		}
-
-		$sessiondata = $this->addSession($user['uid'], $remember);
-
-		if ($sessiondata === false) {
-			$return['message'] = lang('Auth.system_error');
-
-			return $return;
-		}
-
-		$return['error']   = false;
-		$return['message'] = lang("Auth.logged_in");
-
-		$return['hash'] = $sessiondata['hash'];
-
-		$return['cookieName'] = $this->config->cookieName;
-
-		return $return;
+		return $this->completeLogin((int) $uid, $remember, $identifier);
 	}
 
 	/**
@@ -229,6 +206,129 @@ class Auth
 		$this->addAttempt('Login::' . $return['message'], strtolower(trim($loginID)));
 
 		return $return;
+	}
+
+	/**
+	 * Opens a session for a uid the caller has already authenticated.
+	 *
+	 * No password is checked. Call this only after an out-of-band verification
+	 * (for example WebAuthn) has bound the current request to this uid.
+	 * Passing an id taken from the request skips authentication entirely.
+	 *
+	 * An unknown uid and an inactive account both return Auth.login_failed.
+	 * When the uid exists, lockout uses that account's email, so it shares the
+	 * password-login bucket. Otherwise the bucket is "uid:{id}" and does not
+	 * cover every account on the same IP.
+	 *
+	 * @param int  $uid
+	 * @param bool $remember
+	 *
+	 * @return array{error: bool, message: string, hash?: string, cookieName?: string}
+	 */
+	public function loginByUid(int $uid, bool $remember = false)
+	{
+		return $this->completeLogin(
+			$uid,
+			$remember,
+			$this->attemptIdentifierForUid($uid),
+			lang("Auth.login_failed"),
+		);
+	}
+
+	/**
+	 * Finish a login after identity has already been verified.
+	 *
+	 * Password login leaves $ineligibleMessage null so an inactive account
+	 * still returns Auth.account_inactive. loginByUid passes one message so a
+	 * missing uid and an inactive account stay indistinguishable.
+	 *
+	 * @param int         $uid
+	 * @param bool        $remember
+	 * @param string      $identifier         Lockout key stored on auth_attempts
+	 * @param string|null $ineligibleMessage
+	 *
+	 * @return array{error: bool, message: string, hash?: string, cookieName?: string}
+	 */
+	private function completeLogin(int $uid, bool $remember, string $identifier, ?string $ineligibleMessage = null)
+	{
+		$return['error'] = true;
+
+		// An empty identifier would count every attempt from this IP.
+		if ($identifier !== '' && $this->isIPLocked($identifier)) {
+			$return['message'] = lang("Auth.user_blocked");
+
+			return $return;
+		}
+
+		$user   = $this->getUser($uid);
+		$active = is_array($user) && (int) $user['active'] === 1;
+
+		if (!$active) {
+			if ($ineligibleMessage !== null) {
+				$return['message'] = $ineligibleMessage;
+
+				$this->addAttempt('Login::' . $return['message'], $identifier);
+
+				return $return;
+			}
+
+			if (!is_array($user)) {
+				$return['message'] = lang('Auth.system_error');
+
+				return $return;
+			}
+
+			$return['message'] = lang("Auth.account_inactive");
+
+			$this->addAttempt('Login::' . $return['message'], $identifier);
+
+			return $return;
+		}
+
+		$sessiondata = $this->addSession($user['uid'], $remember);
+
+		if ($sessiondata === false) {
+			$return['message'] = lang('Auth.system_error');
+
+			return $return;
+		}
+
+		$return['error']   = false;
+		$return['message'] = lang("Auth.logged_in");
+
+		$return['hash'] = $sessiondata['hash'];
+
+		$return['cookieName'] = $this->config->cookieName;
+
+		return $return;
+	}
+
+	/**
+	 * Lockout identifier for a caller-verified uid.
+	 *
+	 * Uses the account email when the uid exists so passkey and password
+	 * attempts share one bucket. A missing uid gets a non-email key. An empty
+	 * identifier would count every attempt from this IP.
+	 *
+	 * @param int $uid
+	 *
+	 * @return string
+	 */
+	private function attemptIdentifierForUid(int $uid): string
+	{
+		if ($uid > 0) {
+			$user = $this->getUser($uid);
+
+			if (is_array($user)) {
+				$email = strtolower(trim((string) ($user['email'] ?? '')));
+
+				if ($email !== '') {
+					return $email;
+				}
+			}
+		}
+
+		return 'uid:' . $uid;
 	}
 
 	/**
