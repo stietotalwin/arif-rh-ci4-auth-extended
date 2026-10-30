@@ -175,7 +175,7 @@ class Auth
 			return $return;
 		}
 
-		return $this->completeLogin((int) $uid, $remember, $identifier);
+		return $this->completeLogin($user, $remember, $identifier, lang("Auth.account_inactive"));
 	}
 
 	/**
@@ -227,58 +227,43 @@ class Auth
 	 */
 	public function loginByUid(int $uid, bool $remember = false)
 	{
-		return $this->completeLogin(
-			$uid,
-			$remember,
-			$this->attemptIdentifierForUid($uid),
-			lang("Auth.login_failed"),
-		);
-	}
-
-	/**
-	 * Finish a login after identity has already been verified.
-	 *
-	 * Password login leaves $ineligibleMessage null so an inactive account
-	 * still returns Auth.account_inactive. loginByUid passes one message so a
-	 * missing uid and an inactive account stay indistinguishable.
-	 *
-	 * @param int         $uid
-	 * @param bool        $remember
-	 * @param string      $identifier         Lockout key stored on auth_attempts
-	 * @param string|null $ineligibleMessage
-	 *
-	 * @return array{error: bool, message: string, hash?: string, cookieName?: string}
-	 */
-	private function completeLogin(int $uid, bool $remember, string $identifier, ?string $ineligibleMessage = null)
-	{
 		$return['error'] = true;
 
-		// An empty identifier would count every attempt from this IP.
-		if ($identifier !== '' && $this->isIPLocked($identifier)) {
+		$user = $this->getUser($uid);
+
+		// Never an empty identifier: that would count every attempt from this IP.
+		$email      = is_array($user) ? strtolower(trim((string) $user['email'])) : '';
+		$identifier = $email !== '' ? $email : 'uid:' . $uid;
+
+		if ($this->isIPLocked($identifier)) {
 			$return['message'] = lang("Auth.user_blocked");
 
 			return $return;
 		}
 
-		$user   = $this->getUser($uid);
-		$active = is_array($user) && (int) $user['active'] === 1;
+		return $this->completeLogin($user, $remember, $identifier, lang("Auth.login_failed"));
+	}
 
-		if (!$active) {
-			if ($ineligibleMessage !== null) {
-				$return['message'] = $ineligibleMessage;
+	/**
+	 * Finish a login after identity and lockout have already been checked.
+	 *
+	 * Password login passes Auth.account_inactive. loginByUid passes
+	 * Auth.login_failed so a missing uid and an inactive account stay
+	 * indistinguishable.
+	 *
+	 * @param array|false $user              Row from getUser()
+	 * @param bool        $remember
+	 * @param string      $identifier        Lockout key stored on auth_attempts
+	 * @param string      $ineligibleMessage Returned for a missing or inactive account
+	 *
+	 * @return array{error: bool, message: string, hash?: string, cookieName?: string}
+	 */
+	private function completeLogin(array|false $user, bool $remember, string $identifier, string $ineligibleMessage)
+	{
+		$return['error'] = true;
 
-				$this->addAttempt('Login::' . $return['message'], $identifier);
-
-				return $return;
-			}
-
-			if (!is_array($user)) {
-				$return['message'] = lang('Auth.system_error');
-
-				return $return;
-			}
-
-			$return['message'] = lang("Auth.account_inactive");
+		if (!is_array($user) || (int) $user['active'] !== 1) {
+			$return['message'] = $ineligibleMessage;
 
 			$this->addAttempt('Login::' . $return['message'], $identifier);
 
@@ -301,34 +286,6 @@ class Auth
 		$return['cookieName'] = $this->config->cookieName;
 
 		return $return;
-	}
-
-	/**
-	 * Lockout identifier for a caller-verified uid.
-	 *
-	 * Uses the account email when the uid exists so passkey and password
-	 * attempts share one bucket. A missing uid gets a non-email key. An empty
-	 * identifier would count every attempt from this IP.
-	 *
-	 * @param int $uid
-	 *
-	 * @return string
-	 */
-	private function attemptIdentifierForUid(int $uid): string
-	{
-		if ($uid > 0) {
-			$user = $this->getUser($uid);
-
-			if (is_array($user)) {
-				$email = strtolower(trim((string) ($user['email'] ?? '')));
-
-				if ($email !== '') {
-					return $email;
-				}
-			}
-		}
-
-		return 'uid:' . $uid;
 	}
 
 	/**

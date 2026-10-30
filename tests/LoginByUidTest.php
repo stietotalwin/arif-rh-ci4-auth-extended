@@ -225,7 +225,8 @@ final class LoginByUidTest extends TestCase
 		$this->assertCount(1, $inactiveAttempts);
 		$this->assertSame('Login::' . $inactive['message'], $inactiveAttempts[0]['note']);
 		$this->assertCount(1, $this->attemptsFor('uid:' . $unknownId));
-		$this->assertSame([], $this->attemptsFor(''));
+		// addAttempt() stores an empty identifier as NULL.
+		$this->assertSame([], $this->attemptsFor(null));
 	}
 
 	public function testLoginByUidFailureLeavesExistingSessionAlone(): void
@@ -438,7 +439,7 @@ final class LoginByUidTest extends TestCase
 	/**
 	 * @return list<array<string, mixed>>
 	 */
-	private function attemptsFor(string $identifier): array
+	private function attemptsFor(?string $identifier): array
 	{
 		return array_values(array_filter(
 			$this->attemptRows(),

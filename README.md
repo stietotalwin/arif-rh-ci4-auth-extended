@@ -25,7 +25,7 @@ This package is adopted from [PHPAuth](https://github.com/PHPAuth/PHPAuth), but 
 
 Call it only after the application has already verified that uid. A passkey (WebAuthn) check belongs in the app. This method does not check a password or a passkey. Do not pass an id taken straight from the request.
 
-Unknown and inactive accounts both return `Auth.login_failed`, so the message does not reveal whether the uid exists. An existing account shares the password-login lockout bucket (its email). `login()` and `loginByLoginID()` use this same session path; their `error` / `message` / `hash` / `cookieName` results are unchanged.
+Unknown and inactive accounts both return `Auth.login_failed`, so that message does not reveal whether the uid exists. An existing account shares the password-login lockout bucket (its email), so `Auth.user_blocked` can still tell a locked existing uid apart from an unknown one. `login()` and `loginByLoginID()` use this same session path; their `error` / `message` / `hash` / `cookieName` results are unchanged.
 
 Passkey credential storage is not part of this package. Relying-party settings differ per app, and a credential table without the WebAuthn ceremony would be incomplete.
 
