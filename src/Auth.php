@@ -175,6 +175,13 @@ class Auth
 			return $return;
 		}
 
+		// Re-check: parallel wrong guesses may have locked this bucket during bcrypt.
+		if ($this->isIPLocked($identifier)) {
+			$return['message'] = lang("Auth.user_blocked");
+
+			return $return;
+		}
+
 		return $this->completeLogin($user, $remember, $identifier, lang("Auth.account_inactive"));
 	}
 
