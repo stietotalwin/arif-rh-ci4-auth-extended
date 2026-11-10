@@ -41,6 +41,7 @@ return [
 	'newemail_match' => 'New email matches previous email.',
 
 	'logged_in'  => 'You are now logged in.',
+	'login_failed' => 'Login failed.',
 	'logged_out' => 'You are now logged out.',
 
 	'system_error' => 'A system error has been encountered. Please try again.',

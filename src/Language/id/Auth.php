@@ -41,6 +41,7 @@ return [
 	'newemail_match' => 'Email baru sama dengan email lama.',
 
 	'logged_in'  => 'Anda berhasil masuk.',
+	'login_failed' => 'Login gagal.',
 	'logged_out' => 'Anda sudah keluar.',
 
 	'system_error' => 'Ada kesalahan sistem. Silakan coba lagi.',

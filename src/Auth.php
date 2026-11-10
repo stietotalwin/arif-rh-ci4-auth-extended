@@ -175,30 +175,14 @@ class Auth
 			return $return;
 		}
 
-		if ((int) $user['active'] !== 1) {
-			$return['message'] = lang("Auth.account_inactive");
-
-			$this->addAttempt('Login::' . $return['message'], $identifier);
-
-			return $return;
-		}
-
-		$sessiondata = $this->addSession($user['uid'], $remember);
-
-		if ($sessiondata === false) {
-			$return['message'] = lang('Auth.system_error');
+		// Re-check: parallel wrong guesses may have locked this bucket during bcrypt.
+		if ($this->isIPLocked($identifier)) {
+			$return['message'] = lang("Auth.user_blocked");
 
 			return $return;
 		}
 
-		$return['error']   = false;
-		$return['message'] = lang("Auth.logged_in");
-
-		$return['hash'] = $sessiondata['hash'];
-
-		$return['cookieName'] = $this->config->cookieName;
-
-		return $return;
+		return $this->completeLogin($user, $remember, $identifier, lang("Auth.account_inactive"));
 	}
 
 	/**
@@ -227,6 +211,86 @@ class Auth
 		$return['message'] = lang("Auth.account_not_found");
 
 		$this->addAttempt('Login::' . $return['message'], strtolower(trim($loginID)));
+
+		return $return;
+	}
+
+	/**
+	 * Opens a session for a uid the caller has already authenticated.
+	 *
+	 * No password is checked. Call this only after an out-of-band verification
+	 * (for example WebAuthn) has bound the current request to this uid.
+	 * Passing an id taken from the request skips authentication entirely.
+	 *
+	 * An unknown uid and an inactive account both return Auth.login_failed.
+	 * When the uid exists, lockout uses that account's email, so it shares the
+	 * password-login bucket. Otherwise the bucket is "uid:{id}" and does not
+	 * cover every account on the same IP.
+	 *
+	 * @param int  $uid
+	 * @param bool $remember
+	 *
+	 * @return array{error: bool, message: string, hash?: string, cookieName?: string}
+	 */
+	public function loginByUid(int $uid, bool $remember = false)
+	{
+		$return['error'] = true;
+
+		$user = $this->getUser($uid);
+
+		// Never an empty identifier: that would count every attempt from this IP.
+		$email      = is_array($user) ? strtolower(trim((string) $user['email'])) : '';
+		$identifier = $email !== '' ? $email : 'uid:' . $uid;
+
+		if ($this->isIPLocked($identifier)) {
+			$return['message'] = lang("Auth.user_blocked");
+
+			return $return;
+		}
+
+		return $this->completeLogin($user, $remember, $identifier, lang("Auth.login_failed"));
+	}
+
+	/**
+	 * Finish a login after identity and lockout have already been checked.
+	 *
+	 * Password login passes Auth.account_inactive. loginByUid passes
+	 * Auth.login_failed so a missing uid and an inactive account stay
+	 * indistinguishable.
+	 *
+	 * @param array|false $user              Row from getUser()
+	 * @param bool        $remember
+	 * @param string      $identifier        Lockout key stored on auth_attempts
+	 * @param string      $ineligibleMessage Returned for a missing or inactive account
+	 *
+	 * @return array{error: bool, message: string, hash?: string, cookieName?: string}
+	 */
+	private function completeLogin(array|false $user, bool $remember, string $identifier, string $ineligibleMessage)
+	{
+		$return['error'] = true;
+
+		if (!is_array($user) || (int) $user['active'] !== 1) {
+			$return['message'] = $ineligibleMessage;
+
+			$this->addAttempt('Login::' . $return['message'], $identifier);
+
+			return $return;
+		}
+
+		$sessiondata = $this->addSession($user['uid'], $remember);
+
+		if ($sessiondata === false) {
+			$return['message'] = lang('Auth.system_error');
+
+			return $return;
+		}
+
+		$return['error']   = false;
+		$return['message'] = lang("Auth.logged_in");
+
+		$return['hash'] = $sessiondata['hash'];
+
+		$return['cookieName'] = $this->config->cookieName;
 
 		return $return;
 	}
