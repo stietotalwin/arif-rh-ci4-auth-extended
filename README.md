@@ -19,7 +19,7 @@ This package is adopted from [PHPAuth](https://github.com/PHPAuth/PHPAuth), but 
 - Encrypt password using bcrypt
 - Prevent brute force attack by limiting request
 
-## Login by verified uid (2.2.0)
+## Login by verified uid (2.1.1)
 
 `Auth::loginByUid(int $uid, bool $remember = false)` opens the same session as a successful password login: `auth_sessions`, the auth cookie, remember-me, `allow_concurrent_sessions`, the active-account check, and the same lockout and attempt records.
 
